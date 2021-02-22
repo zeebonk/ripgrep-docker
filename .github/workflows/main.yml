@@ -7,6 +7,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - 
+        name: Get latest ripgrep release
+        id: latest_ripgrep_release
+        uses: octokit/request-action@v2.x
+        with:
+          route: GET /repos/{owner}/{repo}/releases/latest
+          owner: BurntSushi
+          repo: ripgrep
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - 
         name: Check-out repo
         uses: actions/checkout@v2
       -
