@@ -16,7 +16,16 @@ jobs:
           repo: ripgrep
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - 
+      -
+        name: Get latest zeebonk/ripgrep-docker releases from Dockerhub
+        uses: boyeborg/fetch-url-action@v1.1
+        id: latest_dockerhub_releases
+        with:
+          url: https://hub.docker.com/v2/repositories/zeebonk/ripgrep-docker/tags/?page_size=100&page=1&ordering=last_updated
+      -
+        run: 'false'
+        if: contains(fromJson(steps.latest_dockerhub_releases.outputs.data).results.*.name, fromJson(steps.latest_ripgrep_release.outputs.data).name)
+      -
         name: Check-out repo
         uses: actions/checkout@v2
       -
@@ -33,6 +42,6 @@ jobs:
           push: true
           tags: zeebonk/ripgrep-docker:test
           build-args: |
-            RIPGREP_VERSION=12.1.1
+            RIPGREP_VERSION=${{ fromJson(steps.latest_ripgrep_release.outputs.data).name }}
             DEBIAN_VERSION=stable-slim
             RUST_VERSION=1-slim
