@@ -1,12 +1,42 @@
 name: Release
+
 on:
+  schedule:
+    - cron: "0 * * * *"
   workflow_dispatch:
 
 jobs:
-  build:
+  check-for-new-version:
     runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.selected_tag.outputs.tag }}
     steps:
       - 
+        name: Get latest ripgrep release
+        id: latest_ripgrep_release
+        uses: octokit/request-action@v2.x
+        with:
+          route: GET /repos/BurntSushi/ripgrep/releases/latest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      -
+        name: Get latest zeebonk/ripgrep-docker releases from Dockerhub
+        uses: boyeborg/fetch-url-action@v1.1
+        id: latest_dockerhub_releases
+        with:
+          url: https://hub.docker.com/v2/repositories/zeebonk/ripgrep-docker/tags/?page_size=100&page=1&ordering=last_updated
+      -
+        name: Select the tag to build if needed
+        id: selected_tag
+        run: echo "::set-output name=tag::${{ fromJson(steps.latest_ripgrep_release.outputs.data).name }}"
+        if: contains(fromJson(steps.latest_dockerhub_releases.outputs.result).results.*.name, fromJson(steps.latest_ripgrep_release.outputs.data).name) == false
+
+  release-new-version:
+    needs: check-for-new-version
+    runs-on: ubuntu-latest
+    if: needs.check-for-new-version.outputs.tag
+    steps:
+      -
         name: Check-out repo
         uses: actions/checkout@v2
       -
@@ -21,4 +51,8 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           push: true
-          tags: zeebonk/ripgrep-docker:test
+          tags: zeebonk/ripgrep-docker:latest,zeebonk/ripgrep-docker:${{ needs.check-for-new-version.outputs.tag }}
+          build-args: |
+            RIPGREP_VERSION=${{ needs.check-for-new-version.outputs.tag }}
+            DEBIAN_VERSION=stable-slim
+            RUST_VERSION=1-slim
