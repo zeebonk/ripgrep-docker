@@ -28,7 +28,7 @@ jobs:
         name: Select the tag to build if needed
         id: selected_tag
         run: echo "::set-output name=tag::${{ fromJson(steps.latest_ripgrep_release.outputs.data).name }}"
-        if: ! contains(fromJson(steps.latest_dockerhub_releases.outputs.result).results.*.name, fromJson(steps.latest_ripgrep_release.outputs.data).name)
+        if: contains(fromJson(steps.latest_dockerhub_releases.outputs.result).results.*.name, fromJson(steps.latest_ripgrep_release.outputs.data).name) == false
 
   release-new-version:
     needs: check-for-new-version
